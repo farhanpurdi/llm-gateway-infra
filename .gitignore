@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+
+*.log
+.DS_Store
+
+.idea/
+.vscode/
+
+__pycache__/
+.pytest_cache/
+
+dist/
+build/
