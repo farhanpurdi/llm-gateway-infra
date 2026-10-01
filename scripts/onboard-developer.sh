@@ -12,6 +12,7 @@ fi
 
 USER_ID="$1"
 TEAM_ID="$2"
+POLICY_NAME="$3"
 
 KEY_ALIAS="$(
 python3 - "$USER_ID" <<'PY'
@@ -46,7 +47,8 @@ echo
 
 "$SCRIPT_DIR/teams/add-member.sh" \
     "$TEAM_ID" \
-    "$USER_ID"
+    "$USER_ID" \
+    "$POLICY_NAME"
 
 echo
 echo "Creating developer key..."

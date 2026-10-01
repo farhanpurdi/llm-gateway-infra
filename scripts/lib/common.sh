@@ -32,6 +32,21 @@ required_env LITELLM_BASE_URL
 required_env LITELLM_MASTER_KEY
 
 
+CONFIG_DIR_RAW="${LLM_GATEWAY_CONFIG_DIR:-../llm-gateway-config}"
+
+if [[ "$CONFIG_DIR_RAW" = /* ]]; then
+    LLM_GATEWAY_CONFIG_DIR="$CONFIG_DIR_RAW"
+else
+    LLM_GATEWAY_CONFIG_DIR="$REPO_ROOT/$CONFIG_DIR_RAW"
+fi
+
+if [ ! -d "$LLM_GATEWAY_CONFIG_DIR" ]; then
+    echo "ERROR: config repository not found:"
+    echo "$LLM_GATEWAY_CONFIG_DIR"
+    exit 1
+fi
+
+
 litellm_admin_request() {
     local method="$1"
     local path="$2"
