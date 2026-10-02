@@ -1,17 +1,29 @@
+# Secrets
 .env
 .env.*
 !.env.example
 
-*.log
-.DS_Store
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
 
-.idea/
-.vscode/
+# Database backups
+backups/
+*.dump
+*.sql
 
+# Python
+.venv/
 __pycache__/
 .pytest_cache/
+*.pyc
 
-dist/
-build/
+# Logs
+*.log
 
-.venv/
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
