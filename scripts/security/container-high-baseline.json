@@ -1,0 +1,14 @@
+{
+    "ghcr.io/berriai/litellm:1.104.0": {
+        "critical": 0,
+        "high": 0
+    },
+    "postgres:16.15": {
+        "critical": 0,
+        "high": 28
+    },
+    "redis:7.4.11-alpine": {
+        "critical": 0,
+        "high": 4
+    }
+}
