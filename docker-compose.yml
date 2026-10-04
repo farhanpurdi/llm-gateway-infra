@@ -35,7 +35,7 @@ services:
 
 
   redis:
-    image: redis:7.4
+    image: redis:7.4.11-alpine
     container_name: llm-gateway-redis
     
     networks:
@@ -62,7 +62,7 @@ services:
 
 
   litellm:
-    image: ghcr.io/berriai/litellm:1.104.0-rc.2
+    image: ghcr.io/berriai/litellm:1.104.0
     container_name: llm-gateway
     
     networks:
