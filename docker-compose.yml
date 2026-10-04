@@ -6,6 +6,7 @@ services:
   postgres:
     image: postgres:16.15
     container_name: llm-gateway-postgres
+    
     networks:
       - llm-backend
 
@@ -36,6 +37,7 @@ services:
   redis:
     image: redis:7.4
     container_name: llm-gateway-redis
+    
     networks:
       - llm-backend
 
@@ -62,6 +64,7 @@ services:
   litellm:
     image: ghcr.io/berriai/litellm:1.104.0-rc.2
     container_name: llm-gateway
+    
     networks:
       - llm-backend
 
@@ -72,7 +75,7 @@ services:
       - .env
 
     volumes:
-      - ../llm-gateway-config/config/litellm_config.yaml:/app/config.yaml:ro
+      - ${LITELLM_CONFIG_PATH:-../llm-gateway-config/config/litellm_config.yaml}:/app/config.yaml:ro
 
     command:
       - "--config"
