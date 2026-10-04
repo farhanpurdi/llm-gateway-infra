@@ -2,10 +2,15 @@
 
 set -euo pipefail
 
-read -p "Delete local containers and volumes? [y/N] " answer
+read -r -p \
+  "Delete local containers and volumes? [y/N] " \
+  answer
 
-if [ "$answer" != "y" ]; then
-    exit 0
-fi
-
-docker compose down -v
+case "$answer" in
+  y|Y|yes|YES)
+    docker compose down -v
+    ;;
+  *)
+    echo "Cancelled."
+    ;;
+esac
