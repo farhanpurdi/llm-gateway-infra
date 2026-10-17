@@ -17,6 +17,14 @@ cd "$REPO_ROOT"
 TRIVY_IMAGE="${TRIVY_IMAGE:-aquasec/trivy:0.74.0}"
 REPORT_ONLY="${REPORT_ONLY:-0}"
 
+trivy_run() {
+  if [ -n "${TRIVY_BIN:-}" ]; then
+    "$TRIVY_BIN" "$@"
+  else
+    docker run --rm --volume trivy-cache:/root/.cache/ "$TRIVY_IMAGE" "$@"
+  fi
+}
+
 BASELINE_FILE="$SCRIPT_DIR/container-high-baseline.json"
 
 TEMP_DIR="$(mktemp -d)"
@@ -39,8 +47,8 @@ echo "  $TRIVY_IMAGE"
 
 echo
 echo "Policy:"
-echo "  CRITICAL fixable: 0"
-echo "  HIGH fixable: per-image baseline"
+echo "  CRITICAL/HIGH fixable: reviewed per-image baseline"
+echo "  Baselines are never increased automatically"
 
 if [ "$REPORT_ONLY" = "1" ]; then
   echo
@@ -87,10 +95,7 @@ echo "Preflight: PASS"
 echo
 echo "[2/4] Scanner availability"
 
-docker run \
-  --rm \
-  "$TRIVY_IMAGE" \
-  version
+trivy_run version
 
 echo "Scanner availability: PASS"
 
@@ -166,11 +171,7 @@ while IFS= read -r image; do
   # findings and evaluate them below.
   #
 
-  if ! docker run \
-    --rm \
-    --volume trivy-cache:/root/.cache/ \
-    "$TRIVY_IMAGE" \
-    image \
+  if ! trivy_run image \
       --no-progress \
       --skip-version-check \
       --scanners vuln \
@@ -361,7 +362,7 @@ while IFS= read -r image; do
 
 
   #
-  # CRITICAL is never baselined.
+  # CRITICAL tolerance is explicitly scoped to each reviewed image.
   #
 
   if [ "$CRITICAL_COUNT" -gt "$MAX_CRITICAL" ]; then

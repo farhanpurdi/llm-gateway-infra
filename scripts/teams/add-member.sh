@@ -47,6 +47,7 @@ member_budget = float(sys.argv[3])
 print(json.dumps({
     "team_id": team_id,
     "max_budget_in_team": member_budget,
+    "budget_duration": "30d",
     "member": {
         "role": "user",
         "user_id": user_id,

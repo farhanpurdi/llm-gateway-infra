@@ -57,6 +57,9 @@ jobs:
           HEALTHCHECK_API_KEY=ci-healthcheck-placeholder
           EOF
 
+      - name: Install validation dependencies
+        run: python -m pip install --require-hashes -r scripts/requirements.lock
+
       - name: Validate infrastructure
         run: |
           ./scripts/ci/validate.sh

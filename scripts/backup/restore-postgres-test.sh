@@ -1,70 +1,21 @@
 #!/usr/bin/env bash
-
 set -euo pipefail
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/common.sh"
-
-required_env POSTGRES_USER
-
+source "$SCRIPT_DIR/../lib/restore-target.sh"
 if [ "$#" -ne 1 ]; then
-  echo "Usage:"
-  echo "  $0 <backup.dump>"
+  echo "Usage: $0 <backup.dump>" >&2
   exit 1
 fi
-
-BACKUP_FILE="$1"
-
-if [ ! -f "$BACKUP_FILE" ]; then
-  echo "ERROR: backup file not found:"
-  echo "$BACKUP_FILE"
-  exit 1
-fi
-
-RESTORE_DB="${RESTORE_DB:-litellm_restore_test}"
-
-echo "======================================"
-echo "PostgreSQL Restore Drill"
-echo "======================================"
-
-echo
-echo "Backup:"
-echo "  $BACKUP_FILE"
-
-echo
-echo "Temporary database:"
-echo "  $RESTORE_DB"
-
-echo
-echo "Dropping previous test database if present..."
-
-docker exec \
-    llm-gateway-postgres \
-    dropdb \
-        -U "$POSTGRES_USER" \
-        --if-exists \
-        "$RESTORE_DB"
-
-echo "Creating temporary database..."
-
-docker exec \
-    llm-gateway-postgres \
-    createdb \
-        -U "$POSTGRES_USER" \
-        "$RESTORE_DB"
-
-echo "Restoring..."
-
-cat "$BACKUP_FILE" \
-    | docker exec -i \
-        llm-gateway-postgres \
-        pg_restore \
-            -U "$POSTGRES_USER" \
-            -d "$RESTORE_DB" \
-            --no-owner \
-            --no-acl
-
-echo
-echo "Restore completed."
-echo "Database:"
-echo "  $RESTORE_DB"
+"$SCRIPT_DIR/verify-backup.sh" "$1"
+# Check the backup's identity before touching the dedicated test database.
+python3 - "$1.json" "$POSTGRES_DB" <<'PYCODE'
+import json, sys
+if json.load(open(sys.argv[1]))["database"] != sys.argv[2]:
+    sys.exit("ERROR: backup belongs to a different source database")
+PYCODE
+docker exec "$POSTGRES_CONTAINER" dropdb -U "$POSTGRES_USER" --if-exists "$RESTORE_DB"
+docker exec "$POSTGRES_CONTAINER" createdb -U "$POSTGRES_USER" "$RESTORE_DB"
+docker exec -i "$POSTGRES_CONTAINER" pg_restore \
+  -U "$POSTGRES_USER" -d "$RESTORE_DB" --exit-on-error --no-owner --no-acl < "$1"
+echo "Restore completed into dedicated test database: $RESTORE_DB"

@@ -1,67 +1,23 @@
 #!/usr/bin/env bash
-
 set -euo pipefail
-
-if [ "$#" -ne 1 ]; then
-  echo "Usage:"
-  echo "  $0 <backup.dump>"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../lib/common.sh"
+if [ "$#" -ne 1 ] || [ ! -s "$1" ]; then
+  echo "Usage: $0 <non-empty-backup.dump>" >&2
   exit 1
 fi
-
-BACKUP_FILE="$1"
-
-if [ ! -f "$BACKUP_FILE" ]; then
-  echo "ERROR: backup does not exist:"
-  echo "$BACKUP_FILE"
-  exit 1
-fi
-
-if [ ! -s "$BACKUP_FILE" ]; then
-  echo "ERROR: backup is empty."
-  exit 1
-fi
-
-TEMP_FILE="$(mktemp)"
-
-cleanup() {
-  rm -f "$TEMP_FILE"
-}
-
-trap cleanup EXIT
-
-echo "======================================"
-echo "Backup Verification"
-echo "======================================"
-
-echo
-echo "Checking archive..."
-
-cat "$BACKUP_FILE" \
-  | docker exec -i \
-      llm-gateway-postgres \
-      pg_restore \
-        --list \
-  > "$TEMP_FILE"
-
-ENTRY_COUNT="$(
-  awk '
-    NF && $0 !~ /^;/ {
-      count++
-    }
-
-    END {
-      print count + 0
-    }
-  ' "$TEMP_FILE"
-)"
-
-if [ "$ENTRY_COUNT" -eq 0 ]; then
-  echo "ERROR: no archive entries found."
-  exit 1
-fi
-
-echo "Archive readable: OK"
-echo "Archive entries: $ENTRY_COUNT"
-
-echo
-echo "Backup verification: PASS"
+python3 - "$1" <<'PYCODE'
+import hashlib, json, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+try:
+    data = json.loads(Path(str(p) + ".json").read_text())
+    for file, field in ((p, "sha256"), (Path(str(p) + ".env"), "environment_sha256")):
+        if hashlib.sha256(file.read_bytes()).hexdigest() != data[field]:
+            sys.exit("ERROR: backup checksum mismatch")
+except (OSError, ValueError, KeyError):
+    sys.exit("ERROR: backup metadata or protected environment is missing/invalid")
+print("Backup checksums: PASS")
+PYCODE
+docker exec -i "$POSTGRES_CONTAINER" pg_restore --list < "$1" > /dev/null
+echo "Backup archive readable: PASS"

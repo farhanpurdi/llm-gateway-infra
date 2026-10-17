@@ -17,7 +17,7 @@ echo
 echo "[1/2] PostgreSQL"
 
 docker exec \
-    llm-gateway-postgres \
+    "$POSTGRES_CONTAINER" \
     pg_isready \
         -U "$POSTGRES_USER" \
         -d "$POSTGRES_DB"
@@ -30,7 +30,7 @@ echo "[2/2] Redis"
 
 REDIS_RESULT="$(
     docker exec \
-        llm-gateway-redis \
+        "$REDIS_CONTAINER" \
         redis-cli ping
 )"
 

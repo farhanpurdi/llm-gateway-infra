@@ -75,7 +75,12 @@ services:
       - .env
 
     volumes:
-      - ${LITELLM_CONFIG_PATH:-../llm-gateway-config/config/litellm_config.yaml}:/app/config.yaml:ro
+      - type: bind
+        source: ${LITELLM_CONFIG_PATH:-../llm-gateway-config/config/litellm_config.yaml}
+        target: /app/config.yaml
+        read_only: true
+        bind:
+          create_host_path: false
 
     command:
       - "--config"
