@@ -13,6 +13,8 @@ echo "Checking authenticated model catalog..."
 RESPONSE="$(
     curl \
         --fail \
+        --connect-timeout 5 \
+        --max-time 15 \
         --silent \
         --show-error \
         "${LITELLM_BASE_URL}/v1/models" \

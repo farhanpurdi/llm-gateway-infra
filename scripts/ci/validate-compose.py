@@ -20,7 +20,7 @@ if len(sys.argv) != 3:
     fail(
         "Usage: "
         "validate-compose.py "
-        "<base|dev> <compose-json>"
+        "<base|dev> <compose-json|->"
     )
 
 
@@ -37,17 +37,18 @@ if mode not in {
     )
 
 
-if not compose_file.exists():
+if sys.argv[2] != "-" and not compose_file.exists():
     fail(
         f"Compose JSON not found: "
         f"{compose_file}"
     )
 
 
-with compose_file.open(
-    encoding="utf-8"
-) as f:
-    compose = json.load(f)
+if sys.argv[2] == "-":
+    compose = json.load(sys.stdin)
+else:
+    with compose_file.open(encoding="utf-8") as f:
+        compose = json.load(f)
 
 
 services = compose.get(
@@ -187,6 +188,13 @@ if not config_mount.get(
         "LiteLLM config mount "
         "must be read-only"
     )
+
+
+if (
+    config_mount.get("type") != "bind"
+    or config_mount.get("bind", {}).get("create_host_path") is not False
+):
+    fail("LiteLLM config bind must set create_host_path=false")
 
 
 #

@@ -4,9 +4,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [ "$#" -lt 2 ]; then
+if [ "$#" -ne 3 ]; then
     echo "Usage:"
-    echo "  $0 <user-id> <team-id>"
+    echo "  $0 <user-id> <team-id> <team-policy-name>"
     exit 1
 fi
 

@@ -2,10 +2,10 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+COMMON_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$COMMON_DIR/../.." && pwd)"
 
-ENV_FILE="$REPO_ROOT/.env"
+ENV_FILE="${LLM_GATEWAY_ENV_FILE:-$REPO_ROOT/.env}"
 
 if [ ! -f "$ENV_FILE" ]; then
     echo "ERROR: .env not found at:"
@@ -16,6 +16,11 @@ fi
 set -a
 source "$ENV_FILE"
 set +a
+
+POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-llm-gateway-postgres}"
+REDIS_CONTAINER="${REDIS_CONTAINER:-llm-gateway-redis}"
+GATEWAY_CONTAINER="${GATEWAY_CONTAINER:-llm-gateway}"
+export POSTGRES_CONTAINER REDIS_CONTAINER GATEWAY_CONTAINER
 
 
 required_env() {
@@ -53,14 +58,14 @@ litellm_admin_request() {
     local body="${3:-}"
 
     if [ -n "$body" ]; then
-        curl --fail-with-body -sS \
+        curl --fail-with-body -sS --connect-timeout 5 --max-time 60 \
         -X "$method" \
         "${LITELLM_BASE_URL}${path}" \
         -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
         -H "Content-Type: application/json" \
         -d "$body"
     else
-        curl --fail-with-body -sS \
+        curl --fail-with-body -sS --connect-timeout 5 --max-time 60 \
         -X "$method" \
         "${LITELLM_BASE_URL}${path}" \
         -H "Authorization: Bearer ${LITELLM_MASTER_KEY}"

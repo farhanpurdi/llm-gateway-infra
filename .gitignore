@@ -4,6 +4,8 @@
 !.env.example
 
 secrets/
+/staging/
+/releases/
 *.pem
 *.key
 *.p12

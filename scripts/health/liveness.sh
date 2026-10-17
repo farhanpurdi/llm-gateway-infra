@@ -12,6 +12,8 @@ curl \
     --fail \
     --silent \
     --show-error \
+    --connect-timeout 5 \
+    --max-time 10 \
     "${LITELLM_BASE_URL}/health/liveliness" \
     >/dev/null
 
