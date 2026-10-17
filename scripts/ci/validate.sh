@@ -97,6 +97,7 @@ echo
 echo "[6/7] Operational regression tests"
 
 python3 scripts/ci/test-operations.py
+python3 scripts/ci/test-compose-contract.py
 
 echo
 echo "[7/7] Git safety"

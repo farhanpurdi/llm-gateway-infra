@@ -7,6 +7,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 
 def fail(message: str) -> None:
     print(
@@ -16,11 +18,11 @@ def fail(message: str) -> None:
     sys.exit(1)
 
 
-if len(sys.argv) != 3:
+if len(sys.argv) not in {3, 4}:
     fail(
         "Usage: "
         "validate-compose.py "
-        "<base|dev> <compose-json|->"
+        "<base|dev> <compose-json|-> [base-compose-yaml]"
     )
 
 
@@ -190,10 +192,24 @@ if not config_mount.get(
     )
 
 
-if (
-    config_mount.get("type") != "bind"
-    or config_mount.get("bind", {}).get("create_host_path") is not False
-):
+source_file = (Path(sys.argv[3]) if len(sys.argv) == 4 else
+               Path(__file__).resolve().parents[2] / "docker-compose.yml")
+try:
+    source = yaml.safe_load(source_file.read_text())
+    declared = [volume for volume in source["services"]["litellm"]["volumes"]
+                if isinstance(volume, dict) and volume.get("target") == "/app/config.yaml"]
+    source_is_safe = (len(declared) == 1 and declared[0].get("type") == "bind"
+                      and declared[0].get("bind", {}).get("create_host_path") is False)
+except (OSError, yaml.YAMLError, KeyError, TypeError, AttributeError):
+    source_is_safe = False
+# Compose releases differ: some JSON serializers omit false values (or the entire
+# empty bind object). Require explicit false in the source and reject normalized
+# true/null; never infer safety from an omitted source option.
+normalized_bind = config_mount.get("bind", {})
+normalized_is_safe = (isinstance(normalized_bind, dict)
+                      and ("create_host_path" not in normalized_bind
+                           or normalized_bind["create_host_path"] is False))
+if config_mount.get("type") != "bind" or not source_is_safe or not normalized_is_safe:
     fail("LiteLLM config bind must set create_host_path=false")
 
 
