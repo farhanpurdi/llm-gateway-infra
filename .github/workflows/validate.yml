@@ -1,0 +1,65 @@
+name: Validate Infrastructure
+
+on:
+  pull_request:
+
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Infrastructure
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Create CI environment
+        run: |
+          cat > .env <<'EOF'
+          LITELLM_BASE_URL=http://localhost:4000
+
+          LITELLM_MASTER_KEY=ci-master-placeholder
+          LITELLM_SALT_KEY=ci-salt-placeholder
+
+          POSTGRES_DB=litellm
+          POSTGRES_USER=litellm
+          POSTGRES_PASSWORD=ci-postgres-password
+
+          DATABASE_URL=postgresql://litellm:ci-postgres-password@postgres:5432/litellm
+
+          REDIS_HOST=redis
+          REDIS_PORT=6379
+          REDIS_PASSWORD=
+
+          OPENAI_API_KEY=ci-provider-placeholder
+
+          LLM_GATEWAY_CONFIG_DIR=../llm-gateway-config
+          LITELLM_CONFIG_PATH=.github/fixtures/litellm_config.yaml
+
+          HEALTHCHECK_API_KEY=ci-healthcheck-placeholder
+          EOF
+
+      - name: Install validation dependencies
+        run: python -m pip install --require-hashes -r scripts/requirements.lock
+
+      - name: Validate infrastructure
+        run: |
+          ./scripts/ci/validate.sh

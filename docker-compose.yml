@@ -1,0 +1,102 @@
+networks:
+  llm-backend:
+    driver: bridge
+
+services:
+  postgres:
+    image: postgres:16.15
+    container_name: llm-gateway-postgres
+    
+    networks:
+      - llm-backend
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    expose:
+      - "5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+    restart: unless-stopped
+
+
+  redis:
+    image: redis:7.4.11-alpine
+    container_name: llm-gateway-redis
+    
+    networks:
+      - llm-backend
+
+    expose:
+      - "6379"
+
+    volumes:
+      - redis_data:/data
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "redis-cli",
+          "ping"
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+    restart: unless-stopped
+
+
+  litellm:
+    image: ghcr.io/berriai/litellm:1.104.0
+    container_name: llm-gateway
+    
+    networks:
+      - llm-backend
+
+    ports:
+      - "4000:4000"
+
+    env_file:
+      - .env
+
+    volumes:
+      - type: bind
+        source: ${LITELLM_CONFIG_PATH:-../llm-gateway-config/config/litellm_config.yaml}
+        target: /app/config.yaml
+        read_only: true
+        bind:
+          create_host_path: false
+
+    command:
+      - "--config"
+      - "/app/config.yaml"
+      - "--port"
+      - "4000"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+
+volumes:
+  postgres_data:
+  redis_data:
